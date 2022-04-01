@@ -33,7 +33,8 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
 
                 double r2 = x2 + y2;
                        
-                if ( r2 >= r2Max ) break;
+                if ( r2 >= r2Max )
+                    break;
                         
                 X = x2 - y2 + x0,
                 Y = xy + xy + y0;
@@ -91,10 +92,6 @@ int main()
                         shiftY -= pos.y - shiftY;
                         scale *= 2.;
 
-                        for ( int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++ )
-                        {
-                            pixels[i].color = sf::Color::Black;
-                        }
                         GenMandelbrot( pixels, shiftX, shiftY, scale );
                     }
                     if ( sf::Mouse::isButtonPressed( sf::Mouse::Right ) )
@@ -103,12 +100,41 @@ int main()
                         shiftY = previousPos.y;
                         scale /= 2.;
 
-                        for ( int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++ )
-                        {
-                            pixels[i].color = sf::Color::Black;
-                        }
                         GenMandelbrot( pixels, shiftX, shiftY, scale );
                     }
+                    break;
+                }
+                case sf::Event::KeyPressed:
+                {
+                    switch ( Event.key.code )
+                    {
+                        case sf::Keyboard::W:
+                        {
+                            shiftY += 50.0;
+                            GenMandelbrot( pixels, shiftX, shiftY, scale );
+                            break;    
+                        }
+                        case sf::Keyboard::S:
+                        {
+                            shiftY -= 50.0;
+                            GenMandelbrot( pixels, shiftX, shiftY, scale );
+                            break;    
+                        }
+                        case sf::Keyboard::A:
+                        {
+                            shiftX += 50.0;
+                            GenMandelbrot( pixels, shiftX, shiftY, scale );
+                            break;    
+                        }
+                        case sf::Keyboard::D:
+                        {
+                            shiftX -= 50.0;
+                            GenMandelbrot( pixels, shiftX, shiftY, scale );
+                            break;    
+                        }
+                    }
+                    
+                    break;
                 }  
             }
         }
