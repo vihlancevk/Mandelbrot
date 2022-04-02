@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <cmath>
+#include <chrono>
+#include <string>
 #include <SFML/Graphics.hpp>
 
 const double SCREEN_WIDTH  = 1920;
@@ -40,12 +42,12 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
                 Y = xy + xy + y0;
             }
                 
-            double I = sqrt( sqrt( (double)N / (double)nMax ) ) * 255.0;
+            double colorElem = sqrt( sqrt( (double)N / (double)nMax ) ) * 255.0;
             
             va[i * SCREEN_WIDTH + j].position = sf::Vector2f(j, i);
             if (N < nMax)
             {
-                sf::Color color(255 - (int)I, (int)I % 2 * 64, (int)I);
+                sf::Color color( 0, (int)colorElem % 5 * 60 + 1, 0 );
                 va[i * SCREEN_WIDTH + j].color = color;
             } else
             {
@@ -57,7 +59,7 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
 
 int main()
 {
-    sf::String title = "Mandelbrot_plotter";
+    sf::String title = "Mandelbrot";
     sf::RenderWindow window( sf::VideoMode( SCREEN_WIDTH, SCREEN_HEIGHT ), title );
 
     window.setFramerateLimit( 30 );
@@ -72,6 +74,8 @@ int main()
 
     while ( window.isOpen() )
     {
+        auto start = std::chrono::steady_clock::now();
+
         sf::Event Event;
         while ( window.pollEvent( Event ) )
         {
@@ -141,6 +145,12 @@ int main()
         window.clear();
         window.draw( pixels );
         window.display();
+
+        auto end     = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast< std::chrono::milliseconds >( end - start );
+        
+        int fps   = 1000 / (int)( elapsed.count() );
+        window.setTitle( "Mandelbrot ( fps - " + std::to_string( fps ) + " )" );
     }
 
     return 0;
