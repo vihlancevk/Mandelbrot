@@ -16,7 +16,7 @@ const __m256d r2Max  = _mm256_set1_pd( 100. );
 
 void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double scale )
 {
-    double dx = 1. / scale;
+    double dx           = 1. / scale;
     const __m256  _255  = _mm256_set1_ps( 255. );
     const __m256d _3210 = _mm256_set_pd( 3., 2., 1., 0. );
     const __m256 nmax   = _mm256_set1_ps( (float)nMax );
@@ -42,7 +42,7 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
 
                 __m256d r2 = _mm256_add_pd( x2, y2 );
 
-                __m256d cmp = _mm256_cmp_pd( r2, r2Max, _CMP_LE_OS );
+                __m256d cmp = _mm256_cmp_pd( r2, r2Max, _CMP_LT_OS );
                 int mask    = _mm256_movemask_pd( cmp );
                 if ( !mask )
                     break;
@@ -55,14 +55,17 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
                 Y = _mm256_add_pd( _mm256_add_pd( xy, xy ), Y0 );
             }
 
-            for (int i = 0; i < 4; i++)
+            __m256 colorElem = _mm256_mul_ps( _mm256_sqrt_ps( _mm256_sqrt_ps( _mm256_div_ps( _mm256_cvtepi32_ps( N ), nmax ) ) ), _255 );
+
+            for (int i = 0, j = 0; i < 4; i++, j++)
             {
                 long int* ptrN         = (long int*)&N;
+                float*    ptrColorElem = (float*)&colorElem;
 
                 va[iy * SCREEN_WIDTH + ( ix + i )].position = sf::Vector2f(( ix + i ), iy);
                 if ( ptrN[i] < nMax )
                 {
-                    sf::Color color( 100 + ptrN[i] % 10 * 6, ( 5 + ptrN[i] % 80 ) * 3 , ( ptrN[i] * ptrN[i] / 255 ) % 200 + 55 );
+                    sf::Color color( 255 - (int)ptrColorElem[i + j] , (int)ptrColorElem[i + j] % 2 * 64, (int)ptrColorElem[i + j] );
                     va[iy * SCREEN_WIDTH + ( ix + i )].color = color;
                 } else
                 {
@@ -75,6 +78,8 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
 
 int main()
 {
+    std::cout << "long int: " << sizeof( long int ) << "; long long int: " << sizeof( long long int ) << "; double: "  << sizeof( double ) << std::endl;
+
     sf::String title = "Mandelbrot";
     sf::RenderWindow window( sf::VideoMode( SCREEN_WIDTH, SCREEN_HEIGHT ), title );
 
