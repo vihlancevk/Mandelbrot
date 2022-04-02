@@ -1,57 +1,76 @@
 // ToDo: 1) parallelization of threads; 2) 
 
 #include <iostream>
+#include <stdio.h>
 #include <cmath>
 #include <chrono>
 #include <string>
 #include <SFML/Graphics.hpp>
+#include <immintrin.h>
 
 const double SCREEN_WIDTH  = 1920;
 const double SCREEN_HEIGHT = 1080;
 
-const int    nMax   = 256;
-const double r2Max  = 100.;
+const int     nMax   = 256;
+const __m256d r2Max  = _mm256_set1_pd( 100. );
 
 void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double scale )
 {
     double dx = 1. / scale;
+    const __m256  _255  = _mm256_set1_ps( 255. );
+    const __m256d _3210 = _mm256_set_pd( 3., 2., 1., 0. );
+    const __m256 nmax   = _mm256_set1_ps( (float)nMax );
 
-    for ( int i = 0; i < SCREEN_HEIGHT; i++ ) 
+    for ( int iy = 0; iy < SCREEN_HEIGHT; iy++ ) 
     {
-        double x0 = (           - shiftX ) / scale;
-        double y0 = ( (double)i - shiftY ) / scale;
+        double x0 = (            - shiftX ) / scale;
+        double y0 = ( (double)iy - shiftY ) / scale;
 
-        for ( int j = 0; j < SCREEN_WIDTH; j++, x0 += dx )
+        for ( int ix = 0; ix < SCREEN_WIDTH; ix += 4, x0 += dx * 4 )
         {
-            double X = x0;
-            double Y = y0;
+            __m256d X0 = _mm256_add_pd( _mm256_set1_pd(x0), _mm256_mul_pd( _3210, _mm256_set1_pd (dx) ) );
+            __m256d Y0 = _mm256_set1_pd( y0 );
 
-            int N = 0;
-            for ( ; N < nMax; N++ )
+            __m256d X = X0, Y = Y0;
+                
+            __m256i N = _mm256_setzero_si256();
+
+            for ( int n = 0; n < nMax; n++ )
             {
-                double x2 = X*X;
-                double y2 = Y*Y;
-                double xy = X*Y;
+                __m256d x2 = _mm256_mul_pd( X, X ),
+                        y2 = _mm256_mul_pd( Y, Y );
 
-                double r2 = x2 + y2;
-                       
-                if ( r2 >= r2Max )
+                __m256d r2 = _mm256_add_pd( x2, y2 );
+
+                __m256d cmp = _mm256_cmp_pd( r2, r2Max, _CMP_LE_OS );
+                int mask    = _mm256_movemask_pd( cmp );
+                if ( !mask )
                     break;
-                        
-                X = x2 - y2 + x0,
-                Y = xy + xy + y0;
+
+                N = _mm256_sub_epi64( N, _mm256_castpd_si256( cmp ) );
+
+                __m256d xy = _mm256_mul_pd( X, Y );
+
+                X = _mm256_add_pd( _mm256_sub_pd( x2, y2 ), X0 );
+                Y = _mm256_add_pd( _mm256_add_pd( xy, xy ), Y0 );
             }
                 
-            double colorElem = sqrt( sqrt( (double)N / (double)nMax ) ) * 255.0;
-            
-            va[i * SCREEN_WIDTH + j].position = sf::Vector2f(j, i);
-            if (N < nMax)
+            __m256 colorElem = _mm256_mul_ps( _mm256_sqrt_ps( _mm256_sqrt_ps( _mm256_div_ps( _mm256_cvtepi32_ps( N ), nmax ) ) ), _255 );
+
+            for (int i = 0; i < 4; i++)
             {
-                sf::Color color( 0 , 0, ( (int)colorElem * (int)colorElem / 255 ) % 200 + 10 );
-                va[i * SCREEN_WIDTH + j].color = color;
-            } else
-            {
-                va[i * SCREEN_WIDTH + j].color = sf::Color::Black;
+                long int* ptrN         = (long int*)&N;
+                float*    ptrColorElem = (float*)&colorElem;
+
+                va[iy * SCREEN_WIDTH + ( ix + i )].position = sf::Vector2f(( ix + i ), iy);
+                if ( ptrN[i] < nMax )
+                {
+                    sf::Color color( 0, 0, ( (int)ptrColorElem[i] * (int)ptrColorElem[i] / 255 ) % 200 + 100 );
+                    va[iy * SCREEN_WIDTH + ( ix + i )].color = color;
+                } else
+                {
+                    va[iy * SCREEN_WIDTH + ( ix + i )].color = sf::Color::Black;
+                }
             }
         }
     }
@@ -67,7 +86,6 @@ int main()
 
     double shiftX            = SCREEN_WIDTH  / 2.;
     double shiftY            = SCREEN_HEIGHT / 2.;
-    sf::Vector2f previousPos = sf::Vector2f( shiftX, shiftY );
     double scale             = 200.;
 
     long int frameCounter = 0;
@@ -91,7 +109,6 @@ int main()
                 {
                     if ( sf::Mouse::isButtonPressed( sf::Mouse::Left ) )
                     {
-                        previousPos = sf::Vector2f( shiftX, shiftY );
                         sf::Vector2i pos = sf::Mouse::getPosition( window );
                         shiftX -= pos.x - shiftX;
                         shiftY -= pos.y - shiftY;
@@ -101,9 +118,10 @@ int main()
                     }
                     if ( sf::Mouse::isButtonPressed( sf::Mouse::Right ) )
                     {
-                        shiftX = previousPos.x;
-                        shiftY = previousPos.y;
-                        scale /= 2.;
+                        sf::Vector2i pos = sf::Mouse::getPosition( window );
+                        shiftX = ( pos.x + shiftX ) / 2;
+                        shiftY = ( pos.y + shiftY ) / 2;
+                        scale  /= 2.;
 
                         GenMandelbrot( pixels, shiftX, shiftY, scale );
                     }
