@@ -54,18 +54,15 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
                 X = _mm256_add_pd( _mm256_sub_pd( x2, y2 ), X0 );
                 Y = _mm256_add_pd( _mm256_add_pd( xy, xy ), Y0 );
             }
-                
-            __m256 colorElem = _mm256_mul_ps( _mm256_sqrt_ps( _mm256_sqrt_ps( _mm256_div_ps( _mm256_cvtepi32_ps( N ), nmax ) ) ), _255 );
 
             for (int i = 0; i < 4; i++)
             {
                 long int* ptrN         = (long int*)&N;
-                float*    ptrColorElem = (float*)&colorElem;
 
                 va[iy * SCREEN_WIDTH + ( ix + i )].position = sf::Vector2f(( ix + i ), iy);
                 if ( ptrN[i] < nMax )
                 {
-                    sf::Color color( 0, 0, ( (int)ptrColorElem[i] * (int)ptrColorElem[i] / 255 ) % 200 + 100 );
+                    sf::Color color( 100 + ptrN[i] % 10 * 6, ( 5 + ptrN[i] % 80 ) * 3 , ( ptrN[i] * ptrN[i] / 255 ) % 200 + 55 );
                     va[iy * SCREEN_WIDTH + ( ix + i )].color = color;
                 } else
                 {
