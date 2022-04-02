@@ -47,7 +47,7 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
             va[i * SCREEN_WIDTH + j].position = sf::Vector2f(j, i);
             if (N < nMax)
             {
-                sf::Color color( 0, (int)colorElem % 5 * 60 + 1, 0 );
+                sf::Color color( 0 , 0, ( (int)colorElem * (int)colorElem / 255 ) % 200 + 10 );
                 va[i * SCREEN_WIDTH + j].color = color;
             } else
             {
@@ -65,17 +65,18 @@ int main()
     window.setFramerateLimit( 30 );
     sf::VertexArray pixels( sf::Points, SCREEN_WIDTH * SCREEN_HEIGHT );
 
-    double shiftX = SCREEN_WIDTH  / 2.;
-    double shiftY = SCREEN_HEIGHT / 2.;
+    double shiftX            = SCREEN_WIDTH  / 2.;
+    double shiftY            = SCREEN_HEIGHT / 2.;
     sf::Vector2f previousPos = sf::Vector2f( shiftX, shiftY );
-    double scale  = 200.;
+    double scale             = 200.;
+
+    long int frameCounter = 0;
+    auto beginTime        = std::chrono::steady_clock::now();
 
     GenMandelbrot( pixels, shiftX, shiftY, scale );
 
     while ( window.isOpen() )
     {
-        auto start = std::chrono::steady_clock::now();
-
         sf::Event Event;
         while ( window.pollEvent( Event ) )
         {
@@ -146,11 +147,15 @@ int main()
         window.draw( pixels );
         window.display();
 
-        auto end     = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast< std::chrono::milliseconds >( end - start );
-        
-        int fps   = 1000 / (int)( elapsed.count() );
-        window.setTitle( "Mandelbrot ( fps - " + std::to_string( fps ) + " )" );
+        frameCounter++;
+        auto newTime = std::chrono::steady_clock::now();
+        if ( newTime - beginTime >= std::chrono::seconds{ 1 } )
+        {
+            window.setTitle( "Mandelbrot ( fps - " + std::to_string( frameCounter ) + " )" );
+
+            frameCounter = 0;
+            beginTime    = newTime;
+        }
     }
 
     return 0;
