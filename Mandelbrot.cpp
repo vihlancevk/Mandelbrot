@@ -1,7 +1,6 @@
-// ToDo: 1) parallelization of threads; 2) 
+// ToDo: 1) parallelization of threads; 2) precision fps (.2) ( std::stringstream ); 3) 
 
 #include <iostream>
-#include <stdio.h>
 #include <cmath>
 #include <chrono>
 #include <string>
@@ -78,17 +77,15 @@ void GenMandelbrot( sf::VertexArray &va, double shiftX, double shiftY, double sc
 
 int main()
 {
-    std::cout << "long int: " << sizeof( long int ) << "; long long int: " << sizeof( long long int ) << "; double: "  << sizeof( double ) << std::endl;
-
     sf::String title = "Mandelbrot";
     sf::RenderWindow window( sf::VideoMode( SCREEN_WIDTH, SCREEN_HEIGHT ), title );
 
     window.setFramerateLimit( 30 );
     sf::VertexArray pixels( sf::Points, SCREEN_WIDTH * SCREEN_HEIGHT );
 
-    double shiftX            = SCREEN_WIDTH  / 2.;
-    double shiftY            = SCREEN_HEIGHT / 2.;
-    double scale             = 200.;
+    double shiftX = SCREEN_WIDTH  / 2.;
+    double shiftY = SCREEN_HEIGHT / 2.;
+    double scale  = 200.;
 
     long int frameCounter = 0;
     auto beginTime        = std::chrono::steady_clock::now();
@@ -123,7 +120,7 @@ int main()
                         sf::Vector2i pos = sf::Mouse::getPosition( window );
                         shiftX = ( pos.x + shiftX ) / 2;
                         shiftY = ( pos.y + shiftY ) / 2;
-                        scale  /= 2.;
+                        scale /= 2.;
 
                         GenMandelbrot( pixels, shiftX, shiftY, scale );
                     }
